@@ -1,0 +1,34 @@
+{
+  "name": "myrit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "generate-posts": "tsx scripts/generate-posts.ts",
+    "notify-today": "tsx scripts/notify-today.ts",
+    "publish-due": "tsx scripts/publish-due.ts",
+    "collect-kpis": "tsx scripts/collect-kpis.ts",
+    "analyze-daily": "tsx scripts/analyze-daily.ts",
+    "analyze-weekly": "tsx scripts/analyze-weekly.ts",
+    "import-competitors": "tsx scripts/import-competitors.ts",
+    "cron:morning": "npm run generate-posts && npm run notify-today",
+    "cron:worker": "npm run publish-due && npm run collect-kpis && npm run analyze-daily"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

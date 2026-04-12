@@ -1,0 +1,28 @@
+{
+  "crons": [
+    {
+      "path": "/api/jobs/generate",
+      "schedule": "30 22 * * *"
+    },
+    {
+      "path": "/api/jobs/notify",
+      "schedule": "35 22 * * *"
+    },
+    {
+      "path": "/api/jobs/publish",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/jobs/collect-kpis",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/jobs/analyze",
+      "schedule": "50 14 * * *"
+    },
+    {
+      "path": "/api/jobs/weekly",
+      "schedule": "0 22 * * 0"
+    }
+  ]
+}

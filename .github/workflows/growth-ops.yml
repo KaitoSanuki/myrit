@@ -1,0 +1,54 @@
+name: growth-ops
+
+on:
+  schedule:
+    - cron: "30 22 * * *"
+    - cron: "35 22 * * *"
+    - cron: "*/5 * * * *"
+    - cron: "0 * * * *"
+    - cron: "50 14 * * *"
+    - cron: "0 22 * * 0"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Generate posts
+        if: github.event.schedule == '30 22 * * *'
+        run: npm run generate-posts
+      - name: Notify today
+        if: github.event.schedule == '35 22 * * *'
+        run: npm run notify-today
+      - name: Publish due posts
+        if: github.event.schedule == '*/5 * * * *'
+        run: npm run publish-due
+      - name: Collect KPIs
+        if: github.event.schedule == '0 * * * *'
+        run: npm run collect-kpis
+      - name: Analyze daily
+        if: github.event.schedule == '50 14 * * *'
+        run: npm run analyze-daily
+      - name: Analyze weekly
+        if: github.event.schedule == '0 22 * * 0'
+        run: npm run import-competitors && npm run analyze-weekly
+      - name: Manual worker
+        if: github.event_name == 'workflow_dispatch'
+        run: npm run cron:worker
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      DRY_RUN_POSTING: ${{ vars.DRY_RUN_POSTING || 'true' }}
+      X_USER_ACCESS_TOKEN: ${{ secrets.X_USER_ACCESS_TOKEN }}
+      X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      THREADS_API_BASE_URL: ${{ vars.THREADS_API_BASE_URL || 'https://graph.threads.net' }}
+      COMPETITOR_POSTS_JSON: ${{ secrets.COMPETITOR_POSTS_JSON }}
