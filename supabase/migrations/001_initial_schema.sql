@@ -92,7 +92,15 @@ create table if not exists competitors (
 create table if not exists competitor_posts (
   id uuid primary key default gen_random_uuid(),
   competitor_id uuid not null references competitors(id) on delete cascade,
+  external_post_id text,
+  external_url text,
+  source_type text not null default 'manual',
+  screenshot_data_url text,
   content text not null,
+  reply_content text,
+  structure_notes text,
+  pattern_tags text[] not null default '{}',
+  impressions integer not null default 0 check (impressions >= 0),
   likes integer not null default 0 check (likes >= 0),
   reposts integer not null default 0 check (reposts >= 0),
   replies integer not null default 0 check (replies >= 0),
@@ -102,6 +110,9 @@ create table if not exists competitor_posts (
 
 create index if not exists competitor_posts_posted_at_idx on competitor_posts(posted_at desc);
 create index if not exists competitor_posts_competitor_idx on competitor_posts(competitor_id);
+create unique index if not exists competitor_posts_external_post_idx
+  on competitor_posts(competitor_id, external_post_id)
+  where external_post_id is not null;
 
 create table if not exists analysis (
   id uuid primary key default gen_random_uuid(),

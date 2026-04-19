@@ -45,9 +45,9 @@ export async function generateDailyPostsWithCodex(date = getLocalDate()) {
 
   const { data: competitorPosts, error: competitorError } = await supabase
     .from("competitor_posts")
-    .select("id, competitor_id, content, likes, reposts, replies, posted_at, created_at")
+    .select("id, competitor_id, external_post_id, external_url, source_type, screenshot_data_url, content, reply_content, structure_notes, pattern_tags, impressions, likes, reposts, replies, posted_at, created_at")
     .gte("posted_at", new Date(Date.now() - getNumberEnv("COMPETITOR_LOOKBACK_DAYS", 3650) * 24 * 60 * 60 * 1000).toISOString())
-    .order("likes", { ascending: false })
+    .order("impressions", { ascending: false })
     .limit(20);
 
   if (competitorError) throw competitorError;
@@ -176,7 +176,17 @@ function buildPrompt(slots: Slot[], competitorPosts: CompetitorPostRow[], recent
     .join("\n");
   const competitorLines = competitorPosts
     .slice(0, 10)
-    .map((post, index) => `${index + 1}. likes ${post.likes}, reposts ${post.reposts}, replies ${post.replies}: ${post.content}`)
+    .map((post, index) => {
+      const metrics = `imp ${post.impressions || 0}, likes ${post.likes}, reposts ${post.reposts}, replies ${post.replies}`;
+      const details = [
+        `${index + 1}. ${metrics}`,
+        `本文: ${post.content}`,
+        post.reply_content ? `リプ/続き: ${post.reply_content}` : "",
+        post.structure_notes ? `構造メモ: ${post.structure_notes}` : "",
+        post.pattern_tags?.length ? `タグ: ${post.pattern_tags.join(", ")}` : ""
+      ].filter(Boolean);
+      return details.join(" / ");
+    })
     .join("\n");
 
   return [
@@ -202,6 +212,7 @@ function buildPrompt(slots: Slot[], competitorPosts: CompetitorPostRow[], recent
     "",
     "生成方針:",
     "- 競合の勝ちパターンはテーマや構造として取り入れる。文章の丸写しはしない。",
+    "- リプ誘導、Tier表、空欄、ランキングの出し惜しみなどは、煽りすぎない範囲で構造だけ参考にする。",
     "- 負けパターン候補は避ける。",
     "- Aは日常の一文、Bは型・例文・手順を優先する。",
     "",

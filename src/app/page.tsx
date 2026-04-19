@@ -9,6 +9,7 @@ type DashboardData = {
   results: any[];
   analysis: any[];
   competitors: any[];
+  competitorPosts: any[];
   error?: string;
 };
 
@@ -106,6 +107,114 @@ export default async function DashboardPage() {
 
       <section className="band">
         <div className="section-heading">
+          <p className="eyebrow">Competitors</p>
+          <h2>参考投稿を追加</h2>
+        </div>
+        <form className="reference-form" action="/api/references" method="post" encType="multipart/form-data">
+          <label>
+            登録キー
+            <input name="secret" type="password" placeholder="CRON_SECRET または REFERENCE_INGEST_SECRET" />
+          </label>
+          <label>
+            スクショ
+            <input name="screenshot" type="file" accept="image/*" />
+          </label>
+          <label>
+            アカウント
+            <input name="account" placeholder="例: ayapan_051" />
+          </label>
+          <label>
+            プラットフォーム
+            <select name="platform" defaultValue="x">
+              <option value="x">X</option>
+              <option value="threads">Threads</option>
+            </select>
+          </label>
+          <label className="wide-field">
+            本文
+            <textarea name="content" required placeholder="スクショ内のメイン投稿文を貼る" />
+          </label>
+          <label className="wide-field">
+            リプ・続き
+            <textarea name="reply_content" placeholder="リプに置いている答え、ランキング上位、続きなど" />
+          </label>
+          <label className="wide-field">
+            構造メモ
+            <textarea name="structure_notes" placeholder="例: Tier表でAを空欄にし、答えをリプに置いてクリックを誘う" />
+          </label>
+          <label>
+            タグ
+            <input name="pattern_tags" placeholder="tier, reply_bait, curiosity_gap" />
+          </label>
+          <label>
+            インプレッション
+            <input name="impressions" type="number" min="0" />
+          </label>
+          <label>
+            いいね
+            <input name="likes" type="number" min="0" />
+          </label>
+          <label>
+            リポスト
+            <input name="reposts" type="number" min="0" />
+          </label>
+          <label>
+            返信
+            <input name="replies" type="number" min="0" />
+          </label>
+          <label>
+            投稿日
+            <input name="posted_at" type="date" />
+          </label>
+          <label className="wide-field">
+            URL
+            <input name="external_url" placeholder="任意" />
+          </label>
+          <button type="submit">参考に追加</button>
+        </form>
+      </section>
+
+      <section className="band">
+        <div className="section-heading">
+          <p className="eyebrow">References</p>
+          <h2>参考投稿リスト</h2>
+        </div>
+        <div className="post-list">
+          {data.competitorPosts.length === 0 ? <p className="empty">競合投稿はまだありません。</p> : null}
+          {data.competitorPosts.map((post) => (
+            <article className="post-row" key={post.id}>
+              <div>
+                <p className="post-meta">
+                  {formatDate(post.posted_at)} / {post.competitors?.platform?.toUpperCase() || "X"} / @
+                  {post.competitors?.account || "unknown"}
+                </p>
+                <p className="post-content">{post.content}</p>
+                {post.reply_content ? <p className="reply-content">リプ: {post.reply_content}</p> : null}
+                {post.structure_notes ? <p className="structure-notes">{post.structure_notes}</p> : null}
+                {post.pattern_tags?.length ? <p className="tag-list">{post.pattern_tags.join(" / ")}</p> : null}
+                {post.external_url ? (
+                  <a className="post-link" href={post.external_url} target="_blank" rel="noreferrer">
+                    元投稿を開く
+                  </a>
+                ) : null}
+                {post.screenshot_data_url ? (
+                  <img className="reference-image" src={post.screenshot_data_url} alt="参考投稿のスクショ" />
+                ) : null}
+              </div>
+              <div className="status">
+                <span>IMP</span>
+                <strong>{formatNumber(post.impressions)}</strong>
+                <small>
+                  L {formatNumber(post.likes)} / RP {formatNumber(post.reposts)} / RE {formatNumber(post.replies)}
+                </small>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="band">
+        <div className="section-heading">
           <p className="eyebrow">PDCA</p>
           <h2>改善提案</h2>
         </div>
@@ -130,7 +239,7 @@ async function loadDashboardData(): Promise<DashboardData | null> {
   const supabase = createOptionalSupabaseAdminClient();
   if (!supabase) return null;
 
-  const [posts, results, analysis, competitors] = await Promise.all([
+  const [posts, results, analysis, competitors, competitorPosts] = await Promise.all([
     supabase
       .from("posts")
       .select("*, accounts(code,label,strategy)")
@@ -138,16 +247,22 @@ async function loadDashboardData(): Promise<DashboardData | null> {
       .limit(50),
     supabase.from("results").select("*").order("collected_at", { ascending: false }).limit(30),
     supabase.from("analysis").select("*").order("date", { ascending: false }).limit(8),
-    supabase.from("competitors").select("*").order("account", { ascending: true }).limit(20)
+    supabase.from("competitors").select("*").order("account", { ascending: true }).limit(20),
+    supabase
+      .from("competitor_posts")
+      .select("*, competitors(account, platform)")
+      .order("impressions", { ascending: false })
+      .limit(20)
   ]);
 
-  const error = [posts.error, results.error, analysis.error, competitors.error].find(Boolean);
+  const error = [posts.error, results.error, analysis.error, competitors.error, competitorPosts.error].find(Boolean);
 
   return {
     posts: posts.data || [],
     results: results.data || [],
     analysis: analysis.data || [],
     competitors: competitors.data || [],
+    competitorPosts: competitorPosts.data || [],
     error: error?.message
   };
 }
@@ -183,4 +298,12 @@ function KpiBars({ results }: { results: any[] }) {
       })}
     </div>
   );
+}
+
+function formatDate(value: string): string {
+  return new Date(value).toISOString().slice(5, 10);
+}
+
+function formatNumber(value: number | string | null | undefined): string {
+  return Number(value || 0).toLocaleString("ja-JP");
 }

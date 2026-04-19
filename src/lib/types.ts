@@ -46,7 +46,15 @@ export type ResultRow = {
 export type CompetitorPostRow = {
   id: string;
   competitor_id: string;
+  external_post_id: string | null;
+  external_url: string | null;
+  source_type: string;
+  screenshot_data_url: string | null;
   content: string;
+  reply_content: string | null;
+  structure_notes: string | null;
+  pattern_tags: string[];
+  impressions: number;
   likes: number;
   reposts: number;
   replies: number;

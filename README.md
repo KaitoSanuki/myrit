@@ -27,6 +27,7 @@ CRON_SECRET=
 DISCORD_WEBHOOK_URL=
 DRY_RUN_POSTING=true
 POSTS_PER_DAY=5
+REFERENCE_INGEST_SECRET=
 ```
 
 3. Supabase に `supabase/migrations/001_initial_schema.sql` を適用し、必要なら `supabase/seed.sql` を流す
@@ -65,6 +66,30 @@ npm run generate-posts:codex
 
 `analyze-weekly` は競合投稿から勝ちパターン、負けパターン候補、次の仮説を `analysis` に保存します。次回の `generate-posts:codex` はその分析をプロンプトに含めて投稿案を作ります。
 
+X の競合アカウントから、直近7日で一番インプレッションが多い投稿を自動取得する場合:
+
+```bash
+npm run collect-competitors:top -- 7
+npm run analyze-weekly
+npm run generate-posts:codex
+```
+
+この取得には `X_BEARER_TOKEN` が必要で、X API の料金が発生する可能性があります。無料運用を優先する場合は使わず、JSONインポートで競合投稿を入れます。Threads の競合投稿も、初期MVPではJSONインポートで登録します。
+最初は `X_COMPETITOR_MAX_ACCOUNTS=10`、`X_COMPETITOR_TIMELINE_MAX_PAGES=3` のまま少量で試してください。実行結果に `estimated_x_api_requests` と `posts_seen` が出ます。
+
+スクショから参考投稿を追加する場合:
+
+1. ダッシュボードの「参考投稿を追加」にスクショ、本文、リプ、構造メモを入れる
+2. 登録キーに `REFERENCE_INGEST_SECRET` または `CRON_SECRET` を入れる
+3. `npm run analyze-weekly`
+4. `npm run generate-posts:codex`
+
+例の構造メモ:
+
+```text
+Tier表でAを空欄にし、上位の答えをリプに置いてクリックを誘う。本文は学習者が知りたい分類に絞る。
+```
+
 投稿実行、KPI収集、日次分析:
 
 ```bash
@@ -91,6 +116,9 @@ npm run analyze-daily
 - `POST /api/jobs/collect-kpis`
 - `POST /api/jobs/analyze`
 - `POST /api/jobs/weekly`
+- `POST /api/jobs/collect-competitors`
+- `POST /api/references`
+- `POST /api/discord/reference`
 
 Vercel は `vercel.json`、GitHub Actions は `.github/workflows/growth-ops.yml` に初期スケジュールを入れています。
 
@@ -133,10 +161,18 @@ THREADS_API_BASE_URL=https://graph.threads.net
 
 ## 競合投稿
 
-初期MVPではスクレイピング処理を差し替えやすいように、JSON インポートを用意しています。
+無料運用では、X/Threadsをブラウザで確認して、週1回だけ上位投稿をダッシュボードまたはJSONで `competitor_posts` に保存します。
+
+ダッシュボードから登録する場合:
 
 ```bash
-COMPETITOR_POSTS_JSON='[{"competitor":"english_tip","platform":"x","content":"初心者は1文だけ声に出すと続く","likes":20,"reposts":4,"replies":2,"posted_at":"2026-04-12T00:00:00.000Z"}]'
+REFERENCE_INGEST_SECRET=好きな長い文字列
+```
+
+本文だけでなく、リプ・続き、構造メモ、タグも保存できます。たとえば `tier, reply_bait, curiosity_gap` のようにタグを入れると、次回の生成で構造として参照されます。
+
+```bash
+COMPETITOR_POSTS_JSON='[{"competitor":"english_tip","platform":"x","content":"初心者は1文だけ声に出すと続く","impressions":12000,"likes":20,"reposts":4,"replies":2,"posted_at":"2026-04-12T00:00:00.000Z"}]'
 npm run import-competitors
 npm run analyze-weekly
 ```
@@ -146,3 +182,33 @@ npm run analyze-weekly
 ```bash
 npm run import-competitors -- data/competitor-posts.example.json
 ```
+
+X API を使う有料・自動取得では、登録済みアカウントを見に行って直近7日でインプレッション最大の投稿を1件ずつ保存できます。
+
+先に Supabase で `supabase/migrations/002_competitor_post_metrics.sql` を適用してください。
+
+```bash
+npm run add-competitor -- englishosaru x
+npm run add-competitor -- Englishpandaa x
+npm run collect-competitors:top -- 7 10 3
+npm run analyze-weekly
+```
+
+`.env.local` の例:
+
+```bash
+X_BEARER_TOKEN=
+COMPETITOR_COLLECT_DAYS=7
+X_COMPETITOR_MAX_ACCOUNTS=10
+X_COMPETITOR_TIMELINE_MAX_PAGES=3
+```
+
+`collect-competitors:top -- 7 10 3` は、過去7日、最大10アカウント、各アカウント最大3ページを取得します。
+
+HTTP で実行する場合:
+
+```bash
+curl -X POST "https://myrit.vercel.app/api/jobs/collect-competitors?days=7&secret=$CRON_SECRET"
+```
+
+手動・Threads用には JSON インポートも使えます。

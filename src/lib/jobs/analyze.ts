@@ -40,9 +40,9 @@ export async function analyzeWeeklyCompetitors(date = getLocalDate()) {
 
   const { data: posts, error } = await supabase
     .from("competitor_posts")
-    .select("content, likes, reposts, replies, posted_at, competitors(account, platform)")
+    .select("content, reply_content, structure_notes, pattern_tags, impressions, likes, reposts, replies, posted_at, competitors(account, platform)")
     .gte("posted_at", since)
-    .order("likes", { ascending: false })
+    .order("impressions", { ascending: false })
     .limit(50);
 
   if (error) throw error;
@@ -53,8 +53,8 @@ export async function analyzeWeeklyCompetitors(date = getLocalDate()) {
     .sort((a: any, b: any) => competitorScore(b) - competitorScore(a));
   const top = ranked.slice(0, 5);
   const bottom = ranked.slice(-5).reverse();
-  const topContents = top.map((post: any) => post.content);
-  const bottomContents = bottom.map((post: any) => post.content);
+  const topContents = top.map((post: any) => referenceText(post));
+  const bottomContents = bottom.map((post: any) => referenceText(post));
   const winningPatterns = extractPatterns(topContents);
   const losingPatterns = inferLosingPatterns(bottomContents, winningPatterns);
 
@@ -62,7 +62,7 @@ export async function analyzeWeeklyCompetitors(date = getLocalDate()) {
     `競合投稿 ${rows.length} 件を確認。`,
     top.length > 0 ? `勝ちパターン: ${winningPatterns.join(" / ") || "まだ明確な偏りなし"}` : "競合投稿が未取得です。",
     bottom.length > 0 ? `負けパターン候補: ${losingPatterns.join(" / ") || "継続観察"}` : "下位投稿はまだ比較できません。",
-    top.length > 0 ? `上位投稿例: ${top.map((post: any) => short(post.content)).join(" / ")}` : ""
+    top.length > 0 ? `上位投稿例: ${top.map((post: any) => `${short(post.content)}（imp ${Number(post.impressions || 0).toLocaleString("ja-JP")}）`).join(" / ")}` : ""
   ].filter(Boolean).join("\n");
 
   const action = top.length > 0
@@ -105,7 +105,9 @@ export async function getRecentAnalysisForGeneration(limit = 4): Promise<string>
 }
 
 function competitorScore(post: any): number {
-  return Number(post.likes || 0) + Number(post.reposts || 0) * 2 + Number(post.replies || 0) * 1.5;
+  const impressions = Number(post.impressions || 0);
+  const engagement = Number(post.likes || 0) + Number(post.reposts || 0) * 2 + Number(post.replies || 0) * 1.5;
+  return impressions > 0 ? impressions : engagement;
 }
 
 function inferLosingPatterns(contents: string[], winningPatterns: string[]): string[] {
@@ -122,6 +124,12 @@ function inferLosingPatterns(contents: string[], winningPatterns: string[]): str
   }
 
   return [...patterns];
+}
+
+function referenceText(post: any): string {
+  return [post.content, post.reply_content, post.structure_notes, ...(post.pattern_tags || [])]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function pickOrDefault(items: string[], fallback: string): string {
@@ -159,6 +167,8 @@ function extractPatterns(contents: string[]): string[] {
     if (/声に出|発音|リズム/i.test(content)) patterns.add("音読");
     if (/日記|生活|通勤|買い物/i.test(content)) patterns.add("日常例");
     if (/保存|メモ|試して/i.test(content)) patterns.add("軽いCTA");
+    if (/tier|ティア|ランク|ランキング|S[：:]|A[：:]|B[：:]/i.test(content)) patterns.add("Tier/ランキング構造");
+    if (/リプ|返信|続き|答え|空欄|クリック|curiosity_gap|reply_bait/i.test(content)) patterns.add("リプ誘導");
   }
   return [...patterns];
 }

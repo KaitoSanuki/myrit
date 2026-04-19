@@ -19,9 +19,9 @@ export async function generateDailyPosts(date = getLocalDate()) {
 
   const { data: competitorPosts, error: competitorError } = await supabase
     .from("competitor_posts")
-    .select("id, competitor_id, content, likes, reposts, replies, posted_at, created_at")
+    .select("id, competitor_id, external_post_id, external_url, source_type, screenshot_data_url, content, reply_content, structure_notes, pattern_tags, impressions, likes, reposts, replies, posted_at, created_at")
     .gte("posted_at", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
-    .order("likes", { ascending: false })
+    .order("impressions", { ascending: false })
     .limit(30);
 
   if (competitorError) throw competitorError;

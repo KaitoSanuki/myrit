@@ -12,7 +12,7 @@ type GenerateInput = {
   account: AccountRow;
   date: string;
   count: number;
-  competitorPosts?: Pick<CompetitorPostRow, "content" | "likes" | "reposts" | "replies">[];
+  competitorPosts?: Pick<CompetitorPostRow, "content" | "reply_content" | "structure_notes" | "impressions" | "likes" | "reposts" | "replies">[];
 };
 
 const RANDOM_THEMES = [
@@ -67,16 +67,22 @@ export function generatePostsForAccount(input: GenerateInput): GeneratedPost[] {
 
 function buildThemePool(
   strategy: AccountStrategy,
-  competitorPosts: Pick<CompetitorPostRow, "content" | "likes" | "reposts" | "replies">[]
+  competitorPosts: Pick<CompetitorPostRow, "content" | "reply_content" | "structure_notes" | "impressions" | "likes" | "reposts" | "replies">[]
 ): string[] {
   const base = strategy === "education" ? EDUCATION_THEMES : RANDOM_THEMES;
   const signals = competitorPosts
     .slice()
-    .sort((a, b) => b.likes + b.reposts * 2 + b.replies * 1.5 - (a.likes + a.reposts * 2 + a.replies * 1.5))
-    .flatMap((post) => extractThemeHints(post.content))
+    .sort((a, b) => competitorSignalScore(b) - competitorSignalScore(a))
+    .flatMap((post) => extractThemeHints([post.content, post.reply_content, post.structure_notes].filter(Boolean).join("\n")))
     .slice(0, 6);
 
   return [...signals, ...base];
+}
+
+function competitorSignalScore(post: Pick<CompetitorPostRow, "impressions" | "likes" | "reposts" | "replies">): number {
+  const impressions = Number(post.impressions || 0);
+  const engagement = Number(post.likes || 0) + Number(post.reposts || 0) * 2 + Number(post.replies || 0) * 1.5;
+  return impressions > 0 ? impressions : engagement;
 }
 
 function extractThemeHints(content: string): string[] {
