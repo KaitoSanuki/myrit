@@ -31,7 +31,7 @@ export async function getPendingReferenceScreenshots(limit = 5) {
   const { data, error } = await supabase
     .from("reference_screenshots")
     .select("*")
-    .eq("status", "pending")
+    .in("status", ["pending", "failed"])
     .order("created_at", { ascending: true })
     .limit(limit);
 

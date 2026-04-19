@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getNumberEnv, getOptionalEnv } from "@/lib/env";
+import { resolveCodexBin } from "@/lib/codex-bin";
 import { saveReferencePost } from "@/lib/jobs/reference-posts";
 import {
   getPendingReferenceScreenshots,
@@ -81,7 +82,7 @@ export async function analyzeReferenceScreenshotsWithCodex(limit = getNumberEnv(
 }
 
 async function runCodexReferenceAnalysis(screenshot: ReferenceScreenshotRow): Promise<CodexReferenceAnalysis> {
-  const codexBin = getOptionalEnv("CODEX_BIN", "codex");
+  const codexBin = resolveCodexBin();
   const model = getOptionalEnv("CODEX_REFERENCE_MODEL") || getOptionalEnv("CODEX_MODEL");
   const timeout = getNumberEnv("CODEX_REFERENCE_TIMEOUT_MS", getNumberEnv("CODEX_TIMEOUT_MS", 180000));
   const tempDir = await mkdtemp(join(tmpdir(), "myrit-reference-codex-"));

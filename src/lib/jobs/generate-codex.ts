@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getNumberEnv, getOptionalEnv } from "@/lib/env";
+import { resolveCodexBin } from "@/lib/codex-bin";
 import { getRecentAnalysisForGeneration } from "@/lib/jobs/analyze";
 import { detectDangerousContent } from "@/lib/safety";
 import { predictPostScore } from "@/lib/scoring";
@@ -99,7 +100,7 @@ async function runCodexGenerator(
   recentAnalysis: string,
   date: string
 ): Promise<CodexOutput> {
-  const codexBin = getOptionalEnv("CODEX_BIN", "codex");
+  const codexBin = resolveCodexBin();
   const model = getOptionalEnv("CODEX_MODEL");
   const timeout = getNumberEnv("CODEX_TIMEOUT_MS", 180000);
   const tempDir = await mkdtemp(join(tmpdir(), "myrit-codex-"));
