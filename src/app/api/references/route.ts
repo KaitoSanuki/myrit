@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getNumberEnv } from "@/lib/env";
 import { parsePatternTags, saveReferencePost } from "@/lib/jobs/reference-posts";
+import { createReferenceScreenshot } from "@/lib/jobs/reference-screenshots";
 import type { Platform } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -25,6 +26,16 @@ async function handlePost(request: Request) {
     if (unauthorized) return unauthorized;
 
     const input = await referenceInputFromForm(form);
+    if (input.screenshot_data_url && !input.content.trim()) {
+      await createReferenceScreenshot({
+        platform: input.platform,
+        screenshot_data_url: input.screenshot_data_url,
+        account_hint: input.account,
+        source_type: "dashboard"
+      });
+      return NextResponse.redirect(new URL("/?reference=pending", request.url), { status: 303 });
+    }
+
     await saveReferencePost(input);
     return NextResponse.redirect(new URL("/?reference=created", request.url), { status: 303 });
   }
@@ -33,10 +44,22 @@ async function handlePost(request: Request) {
   if (unauthorized) return unauthorized;
 
   const body = await request.json();
+  const content = String(body.content || "").trim();
+  if (body.screenshot_data_url && !content) {
+    await createReferenceScreenshot({
+      platform: normalizePlatform(body.platform),
+      screenshot_data_url: String(body.screenshot_data_url),
+      account_hint: optionalString(body.account),
+      source_type: body.source_type === "discord" ? "discord" : "dashboard"
+    });
+
+    return NextResponse.json({ ok: true, status: "pending_analysis" });
+  }
+
   await saveReferencePost({
     account: String(body.account || ""),
     platform: normalizePlatform(body.platform),
-    content: String(body.content || ""),
+    content,
     reply_content: optionalString(body.reply_content),
     structure_notes: optionalString(body.structure_notes),
     pattern_tags: parsePatternTags(body.pattern_tags),

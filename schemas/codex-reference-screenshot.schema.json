@@ -1,0 +1,76 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "account",
+    "platform",
+    "content",
+    "reply_content",
+    "structure_notes",
+    "pattern_tags",
+    "impressions",
+    "likes",
+    "reposts",
+    "replies",
+    "posted_at",
+    "confidence",
+    "needs_review"
+  ],
+  "properties": {
+    "account": {
+      "type": "string",
+      "minLength": 1
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["x", "threads"]
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reply_content": {
+      "type": "string"
+    },
+    "structure_notes": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pattern_tags": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "impressions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "likes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reposts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "replies": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "posted_at": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "needs_review": {
+      "type": "boolean"
+    }
+  }
+}

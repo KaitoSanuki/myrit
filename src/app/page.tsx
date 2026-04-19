@@ -10,6 +10,7 @@ type DashboardData = {
   analysis: any[];
   competitors: any[];
   competitorPosts: any[];
+  referenceScreenshots: any[];
   error?: string;
 };
 
@@ -132,7 +133,7 @@ export default async function DashboardPage() {
           </label>
           <label className="wide-field">
             本文
-            <textarea name="content" required placeholder="スクショ内のメイン投稿文を貼る" />
+            <textarea name="content" placeholder="空欄ならCodexがスクショから読み取ります" />
           </label>
           <label className="wide-field">
             リプ・続き
@@ -172,6 +173,31 @@ export default async function DashboardPage() {
           </label>
           <button type="submit">参考に追加</button>
         </form>
+      </section>
+
+      <section className="band">
+        <div className="section-heading">
+          <p className="eyebrow">Codex Queue</p>
+          <h2>スクショ解析待ち</h2>
+        </div>
+        <div className="post-list">
+          {data.referenceScreenshots.length === 0 ? <p className="empty">解析待ちのスクショはありません。</p> : null}
+          {data.referenceScreenshots.map((item) => (
+            <article className="post-row" key={item.id}>
+              <div>
+                <p className="post-meta">
+                  {formatDate(item.created_at)} / {item.platform.toUpperCase()} / {item.status}
+                </p>
+                {item.analysis_error ? <p className="warning">{item.analysis_error}</p> : null}
+                <img className="reference-image" src={item.screenshot_data_url} alt="解析待ちのスクショ" />
+              </div>
+              <div className={`status status-${item.status === "failed" ? "failed" : "pending"}`}>
+                <span>{item.status}</span>
+                <strong>{item.account_hint || "Codex"}</strong>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="band">
@@ -239,7 +265,7 @@ async function loadDashboardData(): Promise<DashboardData | null> {
   const supabase = createOptionalSupabaseAdminClient();
   if (!supabase) return null;
 
-  const [posts, results, analysis, competitors, competitorPosts] = await Promise.all([
+  const [posts, results, analysis, competitors, competitorPosts, referenceScreenshots] = await Promise.all([
     supabase
       .from("posts")
       .select("*, accounts(code,label,strategy)")
@@ -252,10 +278,16 @@ async function loadDashboardData(): Promise<DashboardData | null> {
       .from("competitor_posts")
       .select("*, competitors(account, platform)")
       .order("impressions", { ascending: false })
-      .limit(20)
+      .limit(20),
+    supabase
+      .from("reference_screenshots")
+      .select("*")
+      .in("status", ["pending", "analyzing", "failed"])
+      .order("created_at", { ascending: false })
+      .limit(10)
   ]);
 
-  const error = [posts.error, results.error, analysis.error, competitors.error, competitorPosts.error].find(Boolean);
+  const error = [posts.error, results.error, analysis.error, competitors.error, competitorPosts.error, referenceScreenshots.error].find(Boolean);
 
   return {
     posts: posts.data || [],
@@ -263,6 +295,7 @@ async function loadDashboardData(): Promise<DashboardData | null> {
     analysis: analysis.data || [],
     competitors: competitors.data || [],
     competitorPosts: competitorPosts.data || [],
+    referenceScreenshots: referenceScreenshots.data || [],
     error: error?.message
   };
 }

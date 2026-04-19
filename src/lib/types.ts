@@ -62,6 +62,20 @@ export type CompetitorPostRow = {
   created_at: string;
 };
 
+export type ReferenceScreenshotRow = {
+  id: string;
+  platform: Platform;
+  source_type: string;
+  screenshot_data_url: string;
+  status: "pending" | "analyzing" | "analyzed" | "failed";
+  account_hint: string | null;
+  analysis_error: string | null;
+  competitor_post_id: string | null;
+  created_at: string;
+  updated_at: string;
+  analyzed_at: string | null;
+};
+
 export type KpiMetrics = {
   impressions: number;
   likes: number;
