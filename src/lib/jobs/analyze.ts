@@ -1,3 +1,4 @@
+import { getNumberEnv } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { dayRange, getLocalDate, getPreviousLocalDate } from "@/lib/time";
 
@@ -34,7 +35,8 @@ export async function analyzeDailyResults(date = getPreviousLocalDate()) {
 
 export async function analyzeWeeklyCompetitors(date = getLocalDate()) {
   const supabase = createSupabaseAdminClient();
-  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  const lookbackDays = getNumberEnv("COMPETITOR_LOOKBACK_DAYS", 3650);
+  const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000).toISOString();
 
   const { data: posts, error } = await supabase
     .from("competitor_posts")

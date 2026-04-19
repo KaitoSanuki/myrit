@@ -46,7 +46,7 @@ export async function generateDailyPostsWithCodex(date = getLocalDate()) {
   const { data: competitorPosts, error: competitorError } = await supabase
     .from("competitor_posts")
     .select("id, competitor_id, content, likes, reposts, replies, posted_at, created_at")
-    .gte("posted_at", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
+    .gte("posted_at", new Date(Date.now() - getNumberEnv("COMPETITOR_LOOKBACK_DAYS", 3650) * 24 * 60 * 60 * 1000).toISOString())
     .order("likes", { ascending: false })
     .limit(20);
 
