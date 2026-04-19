@@ -28,6 +28,7 @@ DISCORD_WEBHOOK_URL=
 DRY_RUN_POSTING=true
 POSTS_PER_DAY=5
 REFERENCE_INGEST_SECRET=
+REFERENCE_AUTH_MAX_AGE_SECONDS=2592000
 ```
 
 3. Supabase に `supabase/migrations/001_initial_schema.sql` を適用し、必要なら `supabase/seed.sql` を流す
@@ -69,7 +70,7 @@ npm run generate-posts:codex
 スクショから参考投稿を追加する場合:
 
 1. ダッシュボードの「参考投稿を追加」にスクショだけ入れる
-2. 登録キーに `REFERENCE_INGEST_SECRET` または `CRON_SECRET` を入れる
+2. 未ログインなら管理パスワードで一度だけログインする
 3. ローカルMacで `npm run analyze-references:codex`
 4. `npm run analyze-weekly`
 5. `npm run generate-posts:codex`
@@ -158,7 +159,10 @@ THREADS_API_BASE_URL=https://graph.threads.net
 
 ```bash
 REFERENCE_INGEST_SECRET=好きな長い文字列
+REFERENCE_AUTH_MAX_AGE_SECONDS=2592000
 ```
+
+`REFERENCE_INGEST_SECRET` は毎回フォームに打つ鍵ではなく、管理ログイン用のパスワードとして使います。ログイン後はHttpOnly Cookieで認証されるため、スクショを貼るだけで登録できます。
 
 スクショだけで登録すると、いったん「スクショ解析待ち」に入ります。ローカルMacで次を実行すると、Codex CLIが画像を読み取り、本文、リプ・続き、構造メモ、タグ、数値を自動で保存します。
 

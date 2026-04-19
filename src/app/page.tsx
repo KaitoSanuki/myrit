@@ -1,6 +1,8 @@
+import { cookies } from "next/headers";
 import { createOptionalSupabaseAdminClient } from "@/lib/supabase/admin";
 import { describeSafetyFlags } from "@/lib/safety";
 import { formatTimeForOffset } from "@/lib/time";
+import { getReferenceAuthSecret, REFERENCE_AUTH_COOKIE, verifyReferenceAuthToken } from "@/lib/reference-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,7 @@ type DashboardData = {
 
 export default async function DashboardPage() {
   const data = await loadDashboardData();
+  const referenceAuth = await getReferenceAuthState();
 
   if (!data) {
     return (
@@ -111,17 +114,7 @@ export default async function DashboardPage() {
           <p className="eyebrow">Competitors</p>
           <h2>参考投稿を追加</h2>
         </div>
-        <form className="reference-form" action="/api/references" method="post" encType="multipart/form-data">
-          <label>
-            登録キー
-            <input name="secret" type="password" placeholder="CRON_SECRET または REFERENCE_INGEST_SECRET" />
-          </label>
-          <label>
-            スクショ
-            <input name="screenshot" type="file" accept="image/*" required />
-          </label>
-          <button type="submit">参考に追加</button>
-        </form>
+        <ReferenceUploadPanel isConfigured={referenceAuth.isConfigured} isAuthenticated={referenceAuth.isAuthenticated} />
       </section>
 
       <section className="band">
@@ -207,6 +200,53 @@ export default async function DashboardPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+async function getReferenceAuthState() {
+  const secret = getReferenceAuthSecret();
+  if (!secret) {
+    return { isConfigured: false, isAuthenticated: false };
+  }
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get(REFERENCE_AUTH_COOKIE)?.value;
+  return {
+    isConfigured: true,
+    isAuthenticated: verifyReferenceAuthToken(token, secret)
+  };
+}
+
+function ReferenceUploadPanel({ isConfigured, isAuthenticated }: { isConfigured: boolean; isAuthenticated: boolean }) {
+  if (!isConfigured) {
+    return <p className="warning">REFERENCE_INGEST_SECRET または CRON_SECRET が未設定です。</p>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <form className="reference-form reference-auth-form" action="/api/reference-auth/login" method="post">
+        <label>
+          管理パスワード
+          <input name="password" type="password" autoComplete="current-password" required />
+        </label>
+        <button type="submit">ログイン</button>
+      </form>
+    );
+  }
+
+  return (
+    <div className="reference-authenticated">
+      <form className="reference-form" action="/api/references" method="post" encType="multipart/form-data">
+        <label>
+          スクショ
+          <input name="screenshot" type="file" accept="image/*" required />
+        </label>
+        <button type="submit">参考に追加</button>
+      </form>
+      <form action="/api/reference-auth/logout" method="post">
+        <button className="secondary-button" type="submit">ログアウト</button>
+      </form>
+    </div>
   );
 }
 

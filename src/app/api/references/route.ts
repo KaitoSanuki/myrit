@@ -1,12 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getNumberEnv } from "@/lib/env";
 import { parsePatternTags, saveReferencePost } from "@/lib/jobs/reference-posts";
 import { createReferenceScreenshot } from "@/lib/jobs/reference-screenshots";
+import {
+  getReferenceAuthSecret,
+  REFERENCE_AUTH_COOKIE,
+  verifyReferenceAuthToken,
+  verifyReferencePassword
+} from "@/lib/reference-auth";
 import type { Platform } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     return await handlePost(request);
   } catch (error) {
@@ -17,12 +23,12 @@ export async function POST(request: Request) {
   }
 }
 
-async function handlePost(request: Request) {
+async function handlePost(request: NextRequest) {
   const contentType = request.headers.get("content-type") || "";
 
   if (contentType.includes("multipart/form-data")) {
     const form = await request.formData();
-    const unauthorized = verifyReferenceSecret(request, String(form.get("secret") || ""));
+    const unauthorized = verifyReferenceAccess(request);
     if (unauthorized) return unauthorized;
 
     const input = await referenceInputFromForm(form);
@@ -44,7 +50,7 @@ async function handlePost(request: Request) {
     return NextResponse.redirect(new URL("/?reference=created", request.url), { status: 303 });
   }
 
-  const unauthorized = verifyReferenceSecret(request);
+  const unauthorized = verifyReferenceAccess(request);
   if (unauthorized) return unauthorized;
 
   const body = await request.json();
@@ -106,15 +112,19 @@ async function referenceInputFromForm(form: FormData) {
   };
 }
 
-function verifyReferenceSecret(request: Request, formSecret = ""): NextResponse | null {
-  const expected = process.env.REFERENCE_INGEST_SECRET || process.env.CRON_SECRET || "";
-  if (!expected) return null;
+function verifyReferenceAccess(request: NextRequest): NextResponse | null {
+  const expected = getReferenceAuthSecret();
+  if (!expected) {
+    return NextResponse.json({ error: "REFERENCE_INGEST_SECRET or CRON_SECRET is not configured" }, { status: 500 });
+  }
+
+  const cookieToken = request.cookies.get(REFERENCE_AUTH_COOKIE)?.value;
+  if (verifyReferenceAuthToken(cookieToken, expected)) return null;
 
   const authorization = request.headers.get("authorization") || "";
   const bearer = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : "";
-  const querySecret = new URL(request.url).searchParams.get("secret") || "";
 
-  if (bearer === expected || querySecret === expected || formSecret === expected) return null;
+  if (verifyReferencePassword(bearer, expected)) return null;
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
