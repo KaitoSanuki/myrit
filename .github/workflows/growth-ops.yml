@@ -1,13 +1,6 @@
 name: growth-ops
 
 on:
-  schedule:
-    - cron: "30 22 * * *"
-    - cron: "35 22 * * *"
-    - cron: "*/5 * * * *"
-    - cron: "0 * * * *"
-    - cron: "50 14 * * *"
-    - cron: "0 22 * * 0"
   workflow_dispatch:
 
 jobs:
@@ -20,26 +13,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Generate posts
-        if: github.event.schedule == '30 22 * * *'
-        run: npm run generate-posts
-      - name: Notify today
-        if: github.event.schedule == '35 22 * * *'
-        run: npm run notify-today
-      - name: Publish due posts
-        if: github.event.schedule == '*/5 * * * *'
-        run: npm run publish-due
-      - name: Collect KPIs
-        if: github.event.schedule == '0 * * * *'
-        run: npm run collect-kpis
-      - name: Analyze daily
-        if: github.event.schedule == '50 14 * * *'
-        run: npm run analyze-daily
-      - name: Analyze weekly
-        if: github.event.schedule == '0 22 * * 0'
-        run: npm run import-competitors && npm run analyze-weekly
       - name: Manual worker
-        if: github.event_name == 'workflow_dispatch'
         run: npm run cron:worker
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

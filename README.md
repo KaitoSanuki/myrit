@@ -112,7 +112,7 @@ npm run analyze-daily
 - `POST /api/references`
 - `POST /api/discord/reference`
 
-Vercel は `vercel.json`、GitHub Actions は `.github/workflows/growth-ops.yml` に初期スケジュールを入れています。
+GitHub Actions は失敗通知が連発しないよう、`.github/workflows/growth-ops.yml` を手動実行だけにしています。定期実行する場合は、先に GitHub Secrets に `SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY` を設定してください。
 
 ## Discord stop
 

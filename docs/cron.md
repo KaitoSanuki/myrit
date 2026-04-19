@@ -28,6 +28,8 @@ Vercel の Cron は UTC 指定です。
 
 ## GitHub Actions 例
 
+`.github/workflows/growth-ops.yml` は、失敗メールが連発しないように手動実行だけにしています。GitHub Actions で定期実行する場合は、先に Repository secrets に `SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY` を設定してください。
+
 ```yaml
 name: growth-ops
 on:
