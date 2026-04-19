@@ -5,6 +5,7 @@ const envPath = resolve(process.cwd(), ".env.local");
 
 if (existsSync(envPath)) {
   const lines = readFileSync(envPath, "utf8").split(/\r?\n/);
+  const values = new Map<string, string>();
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -15,7 +16,13 @@ if (existsSync(envPath)) {
 
     const key = trimmed.slice(0, separator).trim();
     const value = unquote(trimmed.slice(separator + 1).trim());
-    if (key && !process.env[key]) {
+    if (key) {
+      values.set(key, value);
+    }
+  }
+
+  for (const [key, value] of values) {
+    if (!process.env[key]) {
       process.env[key] = value;
     }
   }

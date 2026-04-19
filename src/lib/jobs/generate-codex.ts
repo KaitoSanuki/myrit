@@ -1,16 +1,13 @@
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import { getNumberEnv, getOptionalEnv } from "@/lib/env";
 import { detectDangerousContent } from "@/lib/safety";
 import { predictPostScore } from "@/lib/scoring";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getDailyPostTimes, getLocalDate, scheduleAtForDate } from "@/lib/time";
 import type { AccountRow, CompetitorPostRow, Platform } from "@/lib/types";
-
-const execFileAsync = promisify(execFile);
 
 type CodexPost = {
   slot: number;
@@ -102,6 +99,7 @@ async function runCodexGenerator(slots: Slot[], competitorPosts: CompetitorPostR
   const outputPath = join(tempDir, "posts.json");
 
   try {
+    const prompt = buildPrompt(slots, competitorPosts, date);
     const args = [
       "exec",
       "--sandbox",
@@ -116,19 +114,53 @@ async function runCodexGenerator(slots: Slot[], competitorPosts: CompetitorPostR
     ];
 
     if (model) args.push("--model", model);
-    args.push(buildPrompt(slots, competitorPosts, date));
+    args.push("-");
 
-    await execFileAsync(codexBin, args, {
-      cwd: process.cwd(),
-      timeout,
-      maxBuffer: 1024 * 1024
-    });
+    await runCodexCommand(codexBin, args, prompt, timeout);
 
     const raw = await readFile(outputPath, "utf8");
     return parseCodexOutput(raw);
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }
+}
+
+function runCodexCommand(command: string, args: string[], input: string, timeout: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: process.cwd(),
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error(`Codex CLI timed out after ${timeout}ms\n${stderr || stdout}`));
+    }, timeout);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on("close", (code, signal) => {
+      clearTimeout(timer);
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(new Error(`Codex CLI failed with code ${code ?? "null"} signal ${signal ?? "null"}\n${stderr || stdout}`));
+    });
+
+    child.stdin.end(input);
+  });
 }
 
 function buildPrompt(slots: Slot[], competitorPosts: CompetitorPostRow[], date: string): string {
