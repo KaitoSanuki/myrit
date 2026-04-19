@@ -26,6 +26,10 @@ async function handlePost(request: Request) {
     if (unauthorized) return unauthorized;
 
     const input = await referenceInputFromForm(form);
+    if (!input.screenshot_data_url && !input.content.trim()) {
+      throw new Error("Screenshot is required");
+    }
+
     if (input.screenshot_data_url && !input.content.trim()) {
       await createReferenceScreenshot({
         platform: input.platform,
@@ -45,6 +49,10 @@ async function handlePost(request: Request) {
 
   const body = await request.json();
   const content = String(body.content || "").trim();
+  if (!body.screenshot_data_url && !content) {
+    throw new Error("Screenshot data URL or content is required");
+  }
+
   if (body.screenshot_data_url && !content) {
     await createReferenceScreenshot({
       platform: normalizePlatform(body.platform),

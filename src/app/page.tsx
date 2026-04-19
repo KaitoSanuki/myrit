@@ -118,58 +118,7 @@ export default async function DashboardPage() {
           </label>
           <label>
             スクショ
-            <input name="screenshot" type="file" accept="image/*" />
-          </label>
-          <label>
-            アカウント
-            <input name="account" placeholder="例: ayapan_051" />
-          </label>
-          <label>
-            プラットフォーム
-            <select name="platform" defaultValue="x">
-              <option value="x">X</option>
-              <option value="threads">Threads</option>
-            </select>
-          </label>
-          <label className="wide-field">
-            本文
-            <textarea name="content" placeholder="空欄ならCodexがスクショから読み取ります" />
-          </label>
-          <label className="wide-field">
-            リプ・続き
-            <textarea name="reply_content" placeholder="リプに置いている答え、ランキング上位、続きなど" />
-          </label>
-          <label className="wide-field">
-            構造メモ
-            <textarea name="structure_notes" placeholder="例: Tier表でAを空欄にし、答えをリプに置いてクリックを誘う" />
-          </label>
-          <label>
-            タグ
-            <input name="pattern_tags" placeholder="tier, reply_bait, curiosity_gap" />
-          </label>
-          <label>
-            インプレッション
-            <input name="impressions" type="number" min="0" />
-          </label>
-          <label>
-            いいね
-            <input name="likes" type="number" min="0" />
-          </label>
-          <label>
-            リポスト
-            <input name="reposts" type="number" min="0" />
-          </label>
-          <label>
-            返信
-            <input name="replies" type="number" min="0" />
-          </label>
-          <label>
-            投稿日
-            <input name="posted_at" type="date" />
-          </label>
-          <label className="wide-field">
-            URL
-            <input name="external_url" placeholder="任意" />
+            <input name="screenshot" type="file" accept="image/*" required />
           </label>
           <button type="submit">参考に追加</button>
         </form>

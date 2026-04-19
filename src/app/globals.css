@@ -116,7 +116,7 @@ body {
 
 .reference-form {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) 180px;
   gap: 14px;
   border: 1px solid #d9e3dd;
   border-radius: 8px;
@@ -147,11 +147,6 @@ body {
 .reference-form textarea {
   min-height: 110px;
   resize: vertical;
-}
-
-.reference-form button,
-.wide-field {
-  grid-column: 1 / -1;
 }
 
 .reference-form button {
