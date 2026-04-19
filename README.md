@@ -45,6 +45,14 @@ npm run dev
 npm run cron:morning
 ```
 
+Codex CLI で投稿文を作る場合:
+
+```bash
+npm run generate-posts:codex
+```
+
+このコマンドはVercelではなく、Codex CLIにログイン済みのローカルMacで実行します。ローカルの `.env.local` に `SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY` を入れてください。`CODEX_MODEL` や `CODEX_BIN` を指定すると、使うモデルやCLIパスを上書きできます。
+
 投稿実行、KPI収集、日次分析:
 
 ```bash

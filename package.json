@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "generate-posts": "tsx scripts/generate-posts.ts",
+    "generate-posts:codex": "tsx scripts/generate-posts-codex.ts",
     "notify-today": "tsx scripts/notify-today.ts",
     "publish-due": "tsx scripts/publish-due.ts",
     "collect-kpis": "tsx scripts/collect-kpis.ts",
