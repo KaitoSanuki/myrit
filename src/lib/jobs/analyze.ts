@@ -46,15 +46,31 @@ export async function analyzeWeeklyCompetitors(date = getLocalDate()) {
   if (error) throw error;
 
   const rows = posts || [];
-  const top = rows.slice(0, 5).map((post: any) => post.content);
+  const ranked = rows
+    .slice()
+    .sort((a: any, b: any) => competitorScore(b) - competitorScore(a));
+  const top = ranked.slice(0, 5);
+  const bottom = ranked.slice(-5).reverse();
+  const topContents = top.map((post: any) => post.content);
+  const bottomContents = bottom.map((post: any) => post.content);
+  const winningPatterns = extractPatterns(topContents);
+  const losingPatterns = inferLosingPatterns(bottomContents, winningPatterns);
+
   const insight = [
     `競合投稿 ${rows.length} 件を確認。`,
-    top.length > 0 ? `上位テーマ: ${extractPatterns(top).join(" / ") || "まだ明確な偏りなし"}` : "競合投稿が未取得です。",
-    "勝ちパターンは短い型、日常例、初心者向けの安心感を優先します。"
-  ].join("\n");
+    top.length > 0 ? `勝ちパターン: ${winningPatterns.join(" / ") || "まだ明確な偏りなし"}` : "競合投稿が未取得です。",
+    bottom.length > 0 ? `負けパターン候補: ${losingPatterns.join(" / ") || "継続観察"}` : "下位投稿はまだ比較できません。",
+    top.length > 0 ? `上位投稿例: ${top.map((post: any) => short(post.content)).join(" / ")}` : ""
+  ].filter(Boolean).join("\n");
+
   const action = top.length > 0
-    ? "来週は上位テーマを2本だけ混ぜ、Aはランダム表現、Bは型解説に寄せて比較します。"
-    : "COMPETITOR_POSTS_JSON かスクレイパー連携で競合投稿を追加し、週次分析を再実行します。";
+    ? [
+        "次の仮説:",
+        `Aは ${pickOrDefault(winningPatterns, "日常例")} を自然な一文紹介として増やす。`,
+        `Bは ${pickOrDefault(winningPatterns.filter((pattern) => pattern !== "日常例"), "短い型")} を手順や例文つきで出す。`,
+        "共通で、断定・煽り・長すぎる説明を避ける。"
+      ].join("\n")
+    : "競合投稿を追加し、週次分析を再実行します。";
 
   const { error: upsertError } = await supabase.from("analysis").upsert(
     {
@@ -68,6 +84,46 @@ export async function analyzeWeeklyCompetitors(date = getLocalDate()) {
 
   if (upsertError) throw upsertError;
   return { date, analyzed: rows.length, insight, action };
+}
+
+export async function getRecentAnalysisForGeneration(limit = 4): Promise<string> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("analysis")
+    .select("date, type, insight, action")
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  if (!data || data.length === 0) return "";
+
+  return data
+    .map((item: any) => [`${item.date} / ${item.type}`, item.insight, item.action].join("\n"))
+    .join("\n\n");
+}
+
+function competitorScore(post: any): number {
+  return Number(post.likes || 0) + Number(post.reposts || 0) * 2 + Number(post.replies || 0) * 1.5;
+}
+
+function inferLosingPatterns(contents: string[], winningPatterns: string[]): string[] {
+  const patterns = new Set<string>();
+
+  for (const content of contents) {
+    if ([...content].length > 220) patterns.add("長すぎる説明");
+    if (!/[。.!?？]/.test(content)) patterns.add("読み切りにくい文");
+    if (/絶対|必ず|今すぐ|知らないと損|まだ.*してない/.test(content)) patterns.add("強い断定や煽り");
+  }
+
+  if (winningPatterns.length > 0 && patterns.size === 0) {
+    patterns.add("勝ちパターンとの差分を継続観察");
+  }
+
+  return [...patterns];
+}
+
+function pickOrDefault(items: string[], fallback: string): string {
+  return items[0] || fallback;
 }
 
 function buildInsight(rows: any[]): string {

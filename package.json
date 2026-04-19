@@ -15,6 +15,7 @@
     "collect-kpis": "tsx scripts/collect-kpis.ts",
     "analyze-daily": "tsx scripts/analyze-daily.ts",
     "analyze-weekly": "tsx scripts/analyze-weekly.ts",
+    "add-competitor": "tsx scripts/add-competitor.ts",
     "import-competitors": "tsx scripts/import-competitors.ts",
     "cron:morning": "npm run generate-posts && npm run notify-today",
     "cron:worker": "npm run publish-due && npm run collect-kpis && npm run analyze-daily"

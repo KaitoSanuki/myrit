@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getNumberEnv, getOptionalEnv } from "@/lib/env";
+import { getRecentAnalysisForGeneration } from "@/lib/jobs/analyze";
 import { detectDangerousContent } from "@/lib/safety";
 import { predictPostScore } from "@/lib/scoring";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -52,7 +53,8 @@ export async function generateDailyPostsWithCodex(date = getLocalDate()) {
   if (competitorError) throw competitorError;
 
   const slots = buildSlots(activeAccounts, postTimes, count);
-  const codexPosts = await runCodexGenerator(slots, (competitorPosts || []) as CompetitorPostRow[], date);
+  const recentAnalysis = await getRecentAnalysisForGeneration();
+  const codexPosts = await runCodexGenerator(slots, (competitorPosts || []) as CompetitorPostRow[], recentAnalysis, date);
   const postsBySlot = new Map(codexPosts.posts.map((post) => [post.slot, post.content.trim()]));
 
   const inserts = slots.flatMap((slot) => {
@@ -91,7 +93,12 @@ function buildSlots(accounts: AccountRow[], postTimes: string[], count: number):
   }));
 }
 
-async function runCodexGenerator(slots: Slot[], competitorPosts: CompetitorPostRow[], date: string): Promise<CodexOutput> {
+async function runCodexGenerator(
+  slots: Slot[],
+  competitorPosts: CompetitorPostRow[],
+  recentAnalysis: string,
+  date: string
+): Promise<CodexOutput> {
   const codexBin = getOptionalEnv("CODEX_BIN", "codex");
   const model = getOptionalEnv("CODEX_MODEL");
   const timeout = getNumberEnv("CODEX_TIMEOUT_MS", 180000);
@@ -99,7 +106,7 @@ async function runCodexGenerator(slots: Slot[], competitorPosts: CompetitorPostR
   const outputPath = join(tempDir, "posts.json");
 
   try {
-    const prompt = buildPrompt(slots, competitorPosts, date);
+    const prompt = buildPrompt(slots, competitorPosts, recentAnalysis, date);
     const args = [
       "exec",
       "--sandbox",
@@ -163,7 +170,7 @@ function runCodexCommand(command: string, args: string[], input: string, timeout
   });
 }
 
-function buildPrompt(slots: Slot[], competitorPosts: CompetitorPostRow[], date: string): string {
+function buildPrompt(slots: Slot[], competitorPosts: CompetitorPostRow[], recentAnalysis: string, date: string): string {
   const slotLines = slots
     .map((slot) => `${slot.slot}. ${slot.time} / account ${slot.account.code} / strategy ${slot.account.strategy}`)
     .join("\n");
@@ -189,6 +196,14 @@ function buildPrompt(slots: Slot[], competitorPosts: CompetitorPostRow[], date: 
     "",
     "参考競合投稿:",
     competitorLines || "なし",
+    "",
+    "直近の分析・改善ルール:",
+    recentAnalysis || "なし",
+    "",
+    "生成方針:",
+    "- 競合の勝ちパターンはテーマや構造として取り入れる。文章の丸写しはしない。",
+    "- 負けパターン候補は避ける。",
+    "- Aは日常の一文、Bは型・例文・手順を優先する。",
     "",
     "返すJSON:",
     '{"posts":[{"slot":1,"content":"投稿文"}]}',

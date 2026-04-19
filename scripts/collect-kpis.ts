@@ -1,3 +1,4 @@
+import "./load-local-env";
 import { collectPostKpis } from "@/lib/jobs/collect-kpis";
 
 collectPostKpis()

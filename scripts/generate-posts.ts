@@ -1,3 +1,4 @@
+import "./load-local-env";
 import { generateDailyPosts } from "@/lib/jobs/generate";
 
 const date = process.argv[2];

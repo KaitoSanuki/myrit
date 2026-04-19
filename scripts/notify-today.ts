@@ -1,3 +1,4 @@
+import "./load-local-env";
 import { notifyTodayPosts } from "@/lib/jobs/notify";
 
 const date = process.argv[2];

@@ -1,3 +1,4 @@
+import "./load-local-env";
 import { publishDuePosts } from "@/lib/jobs/publish";
 
 publishDuePosts()

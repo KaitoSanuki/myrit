@@ -53,6 +53,18 @@ npm run generate-posts:codex
 
 このコマンドはVercelではなく、Codex CLIにログイン済みのローカルMacで実行します。ローカルの `.env.local` に `SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY` を入れてください。`CODEX_MODEL` や `CODEX_BIN` を指定すると、使うモデルやCLIパスを上書きできます。
 
+競合を登録して改善へ反映する場合:
+
+```bash
+npm run add-competitor -- english_tip x
+npm run add-competitor -- english_tip threads
+npm run import-competitors -- data/competitor-posts.example.json
+npm run analyze-weekly
+npm run generate-posts:codex
+```
+
+`analyze-weekly` は競合投稿から勝ちパターン、負けパターン候補、次の仮説を `analysis` に保存します。次回の `generate-posts:codex` はその分析をプロンプトに含めて投稿案を作ります。
+
 投稿実行、KPI収集、日次分析:
 
 ```bash
@@ -127,4 +139,10 @@ THREADS_API_BASE_URL=https://graph.threads.net
 COMPETITOR_POSTS_JSON='[{"competitor":"english_tip","platform":"x","content":"初心者は1文だけ声に出すと続く","likes":20,"reposts":4,"replies":2,"posted_at":"2026-04-12T00:00:00.000Z"}]'
 npm run import-competitors
 npm run analyze-weekly
+```
+
+ファイルから取り込む場合:
+
+```bash
+npm run import-competitors -- data/competitor-posts.example.json
 ```

@@ -1,0 +1,20 @@
+[
+  {
+    "competitor": "english_tip",
+    "platform": "x",
+    "content": "英語初心者は、長い文より「今日使う一文」を決める方が続きます。例: I'm still waking up. 朝の自分にぴったりなら、それだけで十分です。",
+    "likes": 42,
+    "reposts": 8,
+    "replies": 3,
+    "posted_at": "2026-04-19T00:00:00.000Z"
+  },
+  {
+    "competitor": "english_tip",
+    "platform": "threads",
+    "content": "聞き取れない時は Sorry? だけでも会話は止まりません。慣れたら Could you say that again? を足せばOKです。",
+    "likes": 31,
+    "reposts": 5,
+    "replies": 4,
+    "posted_at": "2026-04-18T00:00:00.000Z"
+  }
+]

@@ -1,3 +1,4 @@
+import "./load-local-env";
 import { analyzeDailyResults } from "@/lib/jobs/analyze";
 
 const date = process.argv[2];
