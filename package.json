@@ -9,7 +9,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "generate-posts": "tsx scripts/generate-posts.ts",
+    "generate-posts:notify": "tsx scripts/generate-posts.ts --notify",
     "generate-posts:codex": "tsx scripts/generate-posts-codex.ts",
+    "generate-posts:codex:notify": "tsx scripts/generate-posts-codex.ts --notify",
     "notify-today": "tsx scripts/notify-today.ts",
     "publish-due": "tsx scripts/publish-due.ts",
     "collect-kpis": "tsx scripts/collect-kpis.ts",
@@ -19,6 +21,7 @@
     "import-competitors": "tsx scripts/import-competitors.ts",
     "analyze-references:codex": "tsx scripts/analyze-reference-screenshots-codex.ts",
     "cron:morning": "npm run generate-posts && npm run notify-today",
+    "cron:morning:codex": "npm run generate-posts:codex:notify",
     "cron:worker": "npm run publish-due && npm run collect-kpis && npm run analyze-daily"
   },
   "dependencies": {

@@ -55,6 +55,21 @@ npm run generate-posts:codex
 
 このコマンドはVercelではなく、Codex CLIにログイン済みのローカルMacで実行します。ローカルの `.env.local` に `SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY` を入れてください。`CODEX_MODEL` や `CODEX_BIN` を指定すると、使うモデルやCLIパスを上書きできます。
 
+生成した直後にDiscordへまとめ通知する場合:
+
+```bash
+npm run generate-posts:notify
+npm run generate-posts:codex:notify
+```
+
+日付指定もできます。
+
+```bash
+npm run generate-posts:codex -- 2026-05-01 --notify
+```
+
+この運用に切り替えるなら、同じ日に `npm run notify-today` を別で叩くと二重通知になるので使い分けてください。
+
 競合を登録して改善へ反映する場合:
 
 ```bash
@@ -89,6 +104,12 @@ Tier表でAを空欄にし、上位の答えをリプに置いてクリックを
 npm run cron:worker
 ```
 
+Codex生成とDiscord通知をひとまとめで回す場合:
+
+```bash
+npm run cron:morning:codex
+```
+
 個別実行:
 
 ```bash
@@ -112,7 +133,37 @@ npm run analyze-daily
 - `POST /api/references`
 - `POST /api/discord/reference`
 
+生成APIの実行後にそのままDiscord通知したい場合は、`notify=1` も付けます。
+
+```bash
+curl -X POST "https://myrit.vercel.app/api/jobs/generate?secret=$CRON_SECRET&notify=1"
+```
+
 GitHub Actions は失敗通知が連発しないよう、`.github/workflows/growth-ops.yml` を手動実行だけにしています。定期実行する場合は、先に GitHub Secrets に `SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY` を設定してください。
+
+## Discord 設定
+
+Discord側で必要なのは、通知を受けたいチャンネルのWebhook URLを作ることです。
+
+1. Discordで通知先チャンネルを開く
+2. `チャンネル編集` → `連携サービス` → `ウェブフック`
+3. `新しいウェブフック` を作る
+4. `Webhook URL をコピー`
+5. `.env.local` に入れる
+
+```bash
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+```
+
+VercelのAPIルートから通知したい場合は、Vercelの Environment Variables にも同じ `DISCORD_WEBHOOK_URL` を入れてください。
+
+動作確認:
+
+```bash
+npm run notify-today
+```
+
+Webhookだけでできるのは通知の送信までです。`stop 2` の返信や ❌ リアクションで停止したい場合は、別途Discord Botや外部連携から [route.ts](/Users/sanukikaito/myrit/src/app/api/discord/stop/route.ts) へ転送する必要があります。
 
 ## Discord stop
 
