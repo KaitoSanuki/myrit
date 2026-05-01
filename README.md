@@ -120,6 +120,20 @@ npm run collect-kpis
 npm run analyze-daily
 ```
 
+まず1件だけ手動テストしたい場合:
+
+```bash
+npm run publish-due -- --limit 1 --platform x --ignore-schedule
+```
+
+特定の投稿IDを指定して1件だけ出すこともできます。
+
+```bash
+npm run publish-due -- --post-id 投稿ID --ignore-schedule
+```
+
+`--ignore-schedule` を付けると、予約時刻前でも pending の投稿をそのまま試し打ちできます。外すと、時刻が来ている投稿だけが対象です。
+
 ## HTTP Cron
 
 `Authorization: Bearer <CRON_SECRET>` か `?secret=<CRON_SECRET>` で呼びます。
@@ -137,6 +151,12 @@ npm run analyze-daily
 
 ```bash
 curl -X POST "https://myrit.vercel.app/api/jobs/generate?secret=$CRON_SECRET&notify=1"
+```
+
+投稿APIを1件だけ試す場合は、`limit=1` や `platform=x`、`ignoreSchedule=1` を付けられます。
+
+```bash
+curl -X POST "https://myrit.vercel.app/api/jobs/publish?secret=$CRON_SECRET&limit=1&platform=x&ignoreSchedule=1"
 ```
 
 GitHub Actions は失敗通知が連発しないよう、`.github/workflows/growth-ops.yml` を手動実行だけにしています。定期実行する場合は、先に GitHub Secrets に `SUPABASE_URL` と `SUPABASE_SERVICE_ROLE_KEY` を設定してください。
@@ -192,6 +212,8 @@ DRY_RUN_POSTING=false
 X_USER_ACCESS_TOKEN=
 X_BEARER_TOKEN=
 ```
+
+最初のテストは、使いたいプラットフォームだけトークンを入れるのがおすすめです。たとえばXだけ試すなら `THREADS_ACCESS_TOKEN` はまだ空でも構いません。その状態で `--platform x --limit 1` を使えば、1件だけXに送れます。
 
 Threads:
 

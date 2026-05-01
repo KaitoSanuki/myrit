@@ -3,22 +3,55 @@ import { getNumberEnv } from "@/lib/env";
 import { getPoster } from "@/lib/posting/adapters";
 import { describeSafetyFlags, detectDangerousContent } from "@/lib/safety";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { PostRow } from "@/lib/types";
+import type { Platform, PostRow } from "@/lib/types";
 
-export async function publishDuePosts(now = new Date()) {
+type PublishOptions = {
+  now?: Date;
+  limit?: number;
+  platform?: Platform;
+  postId?: string;
+  ignoreSchedule?: boolean;
+};
+
+export async function publishDuePosts(options: PublishOptions = {}) {
   const supabase = createSupabaseAdminClient();
-  const limit = getNumberEnv("PUBLISH_LIMIT", 20);
+  const now = options.now || new Date();
+  const limit = options.limit ?? getNumberEnv("PUBLISH_LIMIT", 20);
 
-  const { data: posts, error } = await supabase
+  let query = supabase
     .from("posts")
     .select("*")
     .eq("status", "pending")
-    .lte("scheduled_at", now.toISOString())
     .order("scheduled_at", { ascending: true })
     .limit(limit);
 
+  if (!options.ignoreSchedule) {
+    query = query.lte("scheduled_at", now.toISOString());
+  }
+
+  if (options.platform) {
+    query = query.eq("platform", options.platform);
+  }
+
+  if (options.postId) {
+    query = query.eq("id", options.postId);
+  }
+
+  const { data: posts, error } = await query;
+
   if (error) throw error;
-  if (!posts || posts.length === 0) return { published: 0, stopped: 0, failed: 0 };
+  if (!posts || posts.length === 0) {
+    return {
+      published: 0,
+      stopped: 0,
+      failed: 0,
+      checked: 0,
+      limit,
+      platform: options.platform || null,
+      postId: options.postId || null,
+      ignoreSchedule: Boolean(options.ignoreSchedule)
+    };
+  }
 
   let published = 0;
   let stopped = 0;
@@ -60,5 +93,14 @@ export async function publishDuePosts(now = new Date()) {
     }
   }
 
-  return { published, stopped, failed };
+  return {
+    published,
+    stopped,
+    failed,
+    checked: posts.length,
+    limit,
+    platform: options.platform || null,
+    postId: options.postId || null,
+    ignoreSchedule: Boolean(options.ignoreSchedule)
+  };
 }
